@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from timm.models.vision_transformer import vit_base_patch16_224
 
+
 class VideoMAEEncoder(nn.Module):
     def __init__(self):
         super().__init__()
