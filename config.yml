@@ -1,0 +1,7 @@
+device: cuda
+epochs: 3
+batch_size: 4
+preprocessed_clip_dir: /kaggle/input/mstcn-cholec80-data/test_data_mstcn
+videomae_model_path: /kaggle/working/checkpoints/vmae/videomae.pth
+feature_save_dir: /kaggle/working/features
+mstcn_model_path: /kaggle/working/checkpoints/mstcn/mstcn.pth
