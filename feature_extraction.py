@@ -1,30 +1,29 @@
-#Feature extraction
-
-import os, yaml, torch
-import pickle
+#Feature Extraction
+import torch
+from libs.model_loader import model, config
+from libs.dataloader import Cholec80Dataset
 from torch.utils.data import DataLoader
-from tqdm import tqdm
-from models.vmae import VideoMAEWrapper
-from libs.dataloader import Cholec80ClipDataset
+import numpy as np
+import os
 
-
-cfg = yaml.safe_load("./config.yml")
-device = torch.device(cfg["device"])
-
-model = VideoMAEWrapper().to(device)
-model.load_state_dict(torch.load(cfg["videomae_model_path"]))
-model.eval()
-
-dataset = Cholec80ClipDataset(cfg["preprocessed_clip_dir"])
+data_path = config["processed_clip_dir"]
+feature_saving_path = config["feature_save_dir"]
+dataset = Cholec80Dataset(data_path)
 loader = DataLoader(dataset, batch_size=1, shuffle=False)
 
-save_dir = cfg["feature_save_dir"]
-os.makedirs(save_dir, exist_ok=True)
+os.makedirs(feature_saving_path, exist_ok=True)
 
 with torch.no_grad():
-    for i, (clip, _) in enumerate(tqdm(loader)):
-        clip = clip.to(device)
-        features = model.encoder(clip).squeeze(0).cpu()  # [T, D]
-        video_name = os.path.basename(dataset.clip_paths[i]).replace(".mp4", ".pkl")
-        with open(os.path.join(save_dir, video_name), "wb") as f:
-            pickle.dump(features, f)
+    for clips, video_name in loader:
+        clips = clips.squeeze(0)  # [num_clips, C, T, H, W]
+        video_name = video_name[0]
+        features = []
+
+        for clip in clips:
+            clip = clip.unsqueeze(0).cuda()  # [1, C, T, H, W]
+            feat = model.forward_features(clip)  # [1, 768]
+            features.append(feat.squeeze(0).cpu().numpy())
+
+        features = np.stack(features)  # [num_clips, 768]
+        np.save(os.path.join(feature_saving_path, video_name.replace(".mp4", ".npy")), features)
+        print(f"Saved features for {video_name}")

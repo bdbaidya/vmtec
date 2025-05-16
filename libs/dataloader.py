@@ -1,37 +1,44 @@
-from torch.utils.data import Dataset
-from torchvision import transforms
-import torch
-import os
-from decord import VideoReader, cpu
-from PIL import Image
+# Data Loader
 
-class Cholec80ClipDataset(Dataset):
-    def __init__(self, clip_dir, transform=None, clip_len=16):
-        self.clip_paths = sorted([
-            os.path.join(clip_dir, f)
-            for f in os.listdir(clip_dir)
-            if f.endswith('.mp4')
-        ])
+import os
+import torch
+import torchvision.transforms as transforms
+from torch.utils.data import Dataset
+import decord
+from decord import VideoReader, cpu
+
+decord.bridge.set_bridge("torch")
+
+class Cholec80Dataset(Dataset):
+    def __init__(self, video_dir, clip_len=16, img_size=224):
+        self.video_dir = video_dir
+        self.videos = sorted([os.path.join(video_dir, v) for v in os.listdir(video_dir) if v.endswith('.mp4')])
         self.clip_len = clip_len
-        self.transform = transform or transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.ToTensor()
-        ])
+        self.img_size = img_size
+
+        self.resize = transforms.Resize((img_size, img_size))
+        self.normalize = transforms.Normalize([0.5]*3, [0.5]*3)
 
     def __len__(self):
-        return len(self.clip_paths)
+        return len(self.videos)
 
     def __getitem__(self, idx):
-        path = self.clip_paths[idx]
-        frames = self.read_video_decord(path)
-        if len(frames) < self.clip_len:
-            raise ValueError(f"Video at {path} has fewer than {self.clip_len} frames.")
-        frames = frames[:self.clip_len]
-        frames_tensor = torch.stack([self.transform(f) for f in frames])
-        return frames_tensor, 0  # dummy label for pretraining
+        vr = VideoReader(self.videos[idx], ctx=cpu(0))
+        total_frames = len(vr)
+        clips = []
 
-    def read_video_decord(self, path):
-        vr = VideoReader(path, ctx=cpu(0))
-        frame_indices = list(range(min(len(vr), self.clip_len)))
-        frames = [Image.fromarray(vr[i].asnumpy()) for i in frame_indices]
-        return frames
+        for start in range(0, total_frames - self.clip_len + 1, 1):
+            clip = vr.get_batch(list(range(start, start + self.clip_len)))  # [T, H, W, C]
+            clip = clip.permute(0, 3, 1, 2).float() / 255.0  # [T, C, H, W]
+
+            # Resize and normalize each frame
+            processed = []
+            for frame in clip:
+                frame = self.resize(frame)
+                frame = self.normalize(frame)
+                processed.append(frame)
+
+            clip_tensor = torch.stack(processed, dim=1)  # [C, T, H, W]
+            clips.append(clip_tensor)
+
+        return torch.stack(clips), os.path.basename(self.videos[idx])
