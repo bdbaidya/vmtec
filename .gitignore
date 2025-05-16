@@ -1,0 +1,3 @@
+./checkpoint/*
+./video_extractor/clip_extraction_checkpoint.json
+./video_extractor/clip_labels.txt
