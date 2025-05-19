@@ -23,4 +23,4 @@ source /mnt/ceph/tco/TCO-Students/Homes/debashis/environment/conda/bin/activate
 # Set environment variables (optional)
 export OMP_NUM_THREADS=2
 
-python feature_extraction.py
+python ./feature_extractor/feature_extractor_updated.py
