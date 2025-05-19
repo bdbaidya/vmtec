@@ -1,10 +1,17 @@
+import os
+import sys
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.abspath(os.path.join(script_dir, ".."))
+sys.path.insert(0, parent_dir) 
+
 import torch
 from libs.model_loader import model
 from utils.config_loader import config
 from libs.dataloader import Cholec80Dataset
 from torch.utils.data import DataLoader
 import numpy as np
-import os
+
 
 def extract_videomae_features(split='train', seq_len=16, frame_step=1):
     """
