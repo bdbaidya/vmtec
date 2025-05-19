@@ -1,0 +1,12 @@
+train_dir: /mnt/ceph/tco/TCO-Students/Homes/debashis/data/processed/test_spilit/test-features/train
+val_dir: /mnt/ceph/tco/TCO-Students/Homes/debashis/data/processed/test_spilit/test-features/val
+test_dir: /mnt/ceph/tco/TCO-Students/Homes/debashis/data/processed/test_spilit/test-features/test
+mstcn_stages: 2
+batch_size: 1
+num_workers: 4
+max_epochs: 50
+devices: 1
+log_dir: logs
+checkpoint_dir: ./checkpoints/mstcn
+learning_rate: 0.001
+optimizer_name: adam

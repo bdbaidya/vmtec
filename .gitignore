@@ -1,0 +1,25 @@
+
+
+
+
+# Ignore specific files in video_extractor
+video_extractor/clip_extraction_checkpoint.json
+video_extractor/clip_labels.txt
+
+
+checkpoints/
+logs/
+*.pth
+*.pt
+
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+*.npy
+*.ckpt
+logs/
+*.log
+.DS_Store
