@@ -6,4 +6,4 @@ videomae_model_path: "./checkpoints/vmae/videomae_pretraining_epoch_319.pth"
 #feature_save_dir: "/mnt/ceph/tco/TCO-Students/Homes/debashis/data/processed/mstcn-features/"
 feature_save_dir: "/mnt/ceph/tco/TCO-Students/Homes/debashis/data/processed/mstcn-features" # Change it "./features"
 mstcn_checkpoint: "./checkpoints/mstcn/mstcn_checkpoint.pth"
-main_data_source_folder: "/mnt/ceph/tco/TCO-Students/Homes/debashis/data/processed/test_spilit/" #Feature directory
+main_data_source_folder: "/mnt/ceph/tco/TCO-Students/Homes/debashis/data/processed/mstcn-features" #Feature directory

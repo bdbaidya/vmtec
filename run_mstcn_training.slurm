@@ -22,4 +22,4 @@ export OMP_NUM_THREADS=2
 
 
 # Run the training script with the config file
-python training.py --config ./conf/config_mstcn.yml
+python train_multistage.py --config ./conf/config_mstcn.yml

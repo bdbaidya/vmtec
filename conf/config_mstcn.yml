@@ -1,12 +1,18 @@
 train_dir: /mnt/ceph/tco/TCO-Students/Homes/debashis/data/processed/test_spilit/test-features/train
 val_dir: /mnt/ceph/tco/TCO-Students/Homes/debashis/data/processed/test_spilit/test-features/val
 test_dir: /mnt/ceph/tco/TCO-Students/Homes/debashis/data/processed/test_spilit/test-features/test
-mstcn_stages: 2
-batch_size: 1
-num_workers: 4
-max_epochs: 50
-devices: 1
+
 log_dir: logs
-checkpoint_dir: ./checkpoints/mstcn
+checkpoint_dir: checkpoints/mstcn
+max_epochs: 10
+mstcn_stages: 2
+mstcn_layers: 10
+mstcn_f_maps: 64
+mstcn_f_dim: 768
+out_features: 7
+mstcn_causal_conv: False
+devices: 1
+batch_size: 4
+num_workers: 8
 learning_rate: 0.001
 optimizer_name: adam

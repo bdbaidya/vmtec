@@ -99,8 +99,10 @@ class TeCNO(LightningModule):
         stages = y_classes.shape[0]
         clc_loss = 0
         for j in range(stages):
-            p_classes = y_classes[j].squeeze().transpose(1, 0)  # [batch_size, num_classes, seq_len]
-            ce_loss = self.ce_loss(p_classes, labels.squeeze())  # labels: [batch_size, seq_len]
+            p_classes = y_classes[j]  # [batch_size, num_classes, seq_len]
+            ce_loss = self.ce_loss(p_classes, labels)  # labels: [batch_size, seq_len]
+            #p_classes = y_classes[j].squeeze().transpose(1, 0)  # [batch_size, num_classes, seq_len]
+            #ce_loss = self.ce_loss(p_classes, labels.squeeze())  # labels: [batch_size, seq_len]
             clc_loss += ce_loss
         clc_loss = clc_loss / (stages * 1.0)
         return clc_loss
@@ -217,7 +219,18 @@ class TeCNO(LightningModule):
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
-        return [optimizer]
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, mode='max', factor=0.1, patience=5, verbose=True
+        )
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": {
+                "scheduler": scheduler,
+                "monitor": "val_acc",
+                "interval": "epoch",
+                "frequency": 1
+            }
+        }
 
     def __dataloader(self, split=None):
         dataset = self.dataset[split]
@@ -259,5 +272,5 @@ class TeCNO(LightningModule):
         regressiontcn = parser.add_argument_group(title='regression tcn specific args options')
         regressiontcn.add_argument("--learning_rate", default=0.001, type=float)
         regressiontcn.add_argument("--optimizer_name", default="adam", type=str)
-        regressiontcn.add_argument("--batch_size", default=1, type=int)
+        regressiontcn.add_argument("--batch_size", default=4, type=int)
         return parser

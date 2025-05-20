@@ -11,8 +11,8 @@ source_folder = data_path
 
 
 # Set destination folders
-train_folder = os.path.join(source_folder, "training")
-val_folder = os.path.join(source_folder, "validation")
+train_folder = os.path.join(source_folder, "train")
+val_folder = os.path.join(source_folder, "val")
 test_folder = os.path.join(source_folder, "test")
 
 # Create destination folders if they don't exist
@@ -23,7 +23,7 @@ for folder in [train_folder, val_folder, test_folder]:
 pattern = re.compile(r"video(\d+)", re.IGNORECASE)
 
 # Filter and count eligible files first
-video_files = [f for f in os.listdir(source_folder) if f.endswith(".mp4") and pattern.search(f)]
+video_files = [f for f in os.listdir(source_folder) if f.endswith(".npy") and pattern.search(f)]
 
 # Move files with a progress bar
 for filename in tqdm(video_files, desc="Organizing videos", unit="file"):
