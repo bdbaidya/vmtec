@@ -23,5 +23,6 @@ __pycache__/
 logs/
 *.log
 .DS_Store
-
+*.err
+*.out
 wandb/
