@@ -5,7 +5,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 from models.mstcn_wrapper import TeCNO, MSTCNDataset
-from models.mstcn import MultiStageModel  # Import MultiStageModel
+from models.mstcn import MultiStageModel
 from torch import nn
 import numpy as np
 import yaml

@@ -10,7 +10,7 @@ mstcn_layers: 10
 mstcn_f_maps: 64
 mstcn_f_dim: 768
 out_features: 7
-mstcn_causal_conv: False
+mstcn_causal_conv: True
 devices: 1
 batch_size: 4
 num_workers: 8

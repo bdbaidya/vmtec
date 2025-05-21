@@ -62,33 +62,35 @@ def group_features(test_dir):
             video_dict[video_id]['labels'].append(label_idx)
         except Exception as e:
             print(f"Error loading {path}: {e}")
+    print(video_dict)
     return video_dict
 
 def plot_one_video(model, video_dict, device='cpu'):
-    model.to(device)
+    video_name = list(video_dict.keys())[0]
+    data = video_dict[video_name]
+
+    # Get features and permute to [1, dim, T]
+    features = torch.tensor(data['features'][0], dtype=torch.float32).unsqueeze(0).permute(0, 2, 1).to(device)  # [1, dim, T]
+    gt = np.array(data['labels'])  # [T]
+
+    # Forward pass
     model.eval()
     with torch.no_grad():
-        for video_id, content in video_dict.items():
-            features_np = np.stack(content['features'])  # [T, D]
-            labels_np = np.array(content['labels'])      # [T]
+        outputs = model.model(features)  # [num_stages, 1, T, num_classes]
+        pred_logits = outputs[-1].squeeze(0)  # [T, num_classes]
+        pred_classes = pred_logits.argmax(dim=1).cpu().numpy()  # [T]
 
-            features = torch.tensor(features_np, dtype=torch.float32).unsqueeze(0).to(device)  # [1, T, D]
-            labels = torch.tensor(labels_np, dtype=torch.long)  # [T]
-
-            outputs = model.model(features)  # [num_stages, 1, T, num_classes]
-            pred = outputs[-1].squeeze(0).argmax(dim=1).cpu().numpy()
-
-            plt.figure(figsize=(12, 4))
-            plt.plot(labels_np, label="Ground Truth", color='green')
-            plt.plot(pred, label="Prediction", color='red', linestyle='--')
-            plt.title(f"Prediction vs Ground Truth for Video {video_id}")
-            plt.xlabel("Time (clip index)")
-            plt.ylabel("Phase Label (0–6)")
-            plt.legend()
-            plt.grid(True)
-            plt.tight_layout()
-            plt.show()
-            break  # Only show one video
+    # Plotting
+    plt.figure(figsize=(15, 4))
+    plt.plot(pred_classes, 'r--', label='Prediction')
+    plt.plot(gt, 'g-', label='Ground Truth')
+    plt.title(f'Prediction vs Ground Truth for Video {video_name}')
+    plt.xlabel('Time (clip index)')
+    plt.ylabel('Phase Label (0–6)')
+    plt.ylim(-1, 7)
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 
 def main():
     parser = argparse.ArgumentParser()
@@ -97,9 +99,14 @@ def main():
 
     config = load_config(args.config)
     model = load_model(config)
+
     video_dict = group_features(config.test_dir)
     device = 'cuda' if torch.cuda.is_available() and config.accelerator == 'gpu' else 'cpu'
+    
+    model.to(device)  # ✅ move model to the correct device
+
     plot_one_video(model, video_dict, device=device)
 
+    
 if __name__ == "__main__":
     main()
