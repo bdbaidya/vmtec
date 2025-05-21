@@ -3,7 +3,7 @@ val_dir: /mnt/ceph/tco/TCO-Students/Homes/debashis/data/processed/mstcn-features
 test_dir: /mnt/ceph/tco/TCO-Students/Homes/debashis/data/processed/mstcn-features/test
 wandb_api_key: "3cd0fd46806f5dbb7e666990676fb3d1c75e0447"
 log_dir: logs
-checkpoint_dir: checkpoints/mstcn
+checkpoint_dir: checkpoints/mstcn/grad-clipped
 max_epochs: 300
 mstcn_stages: 2
 mstcn_layers: 10
