@@ -6,7 +6,7 @@
 #SBATCH --nodes=1                          # Single node
 #SBATCH --ntasks-per-node=1                # One task per node
 #SBATCH --cpus-per-task=8                  # CPU cores per task (adjust as needed)
-#SBATCH --mem=64G                          # Memory per node
+#SBATCH --mem=100G                          # Memory per node
 #SBATCH --mail-type=END,FAIL               # Notifications on job end/fail
 #SBATCH --mail-user=your.email@example.com # Your email
 
@@ -18,7 +18,7 @@ source /mnt/ceph/tco/TCO-Students/Homes/debashis/environment/conda/bin/activate
 # pip install --user -r requirements.txt
 
 # Set environment variables (optional)
-export OMP_NUM_THREADS=2
+#export OMP_NUM_THREADS=2
 
 
 # Run the training script with the config file

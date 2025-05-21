@@ -4,6 +4,7 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
+from pytorch_lightning.callbacks import EarlyStopping
 from models.mstcn_wrapper import TeCNO, MSTCNDataset
 from models.mstcn import MultiStageModel
 from torch import nn
@@ -112,13 +113,22 @@ def main():
         # Handle devices for backward compatibility
     devices = getattr(args, 'devices', getattr(args, 'gpus', 1))
 
+
+    early_stop_callback = EarlyStopping(
+        monitor="val_acc",
+        min_delta=0.00,
+        patience=15,  # Stop after 15 epochs of no improvement
+        mode="max",
+        verbose=True
+    )
+
         # Initialize trainer
     trainer = pl.Trainer(
         max_epochs=args.max_epochs,
         devices=devices,
         accelerator="gpu",
         logger=logger,
-        callbacks=[checkpoint_callback],
+        callbacks=[checkpoint_callback, early_stop_callback],
         num_sanity_val_steps=2
     )
 

@@ -31,11 +31,11 @@ for filename in tqdm(video_files, desc="Organizing videos", unit="file"):
     if match:
         video_num = int(match.group(1))
         src_path = os.path.join(source_folder, filename)
-        if 1 <= video_num <= 40:
+        if 1 <= video_num <= 41:
             dst_folder = train_folder
-        elif 41 <= video_num <= 60:
+        elif 41 <= video_num <= 49:
             dst_folder = val_folder
-        elif 61 <= video_num <= 80:
+        elif 50 <= video_num <= 80:
             dst_folder = test_folder
         else:
             continue  # Ignore videos outside 1–80 range
