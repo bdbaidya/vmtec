@@ -334,7 +334,7 @@ class TeCNO(LightningModule):
     @staticmethod
     def add_module_specific_args(parser):
         regressiontcn = parser.add_argument_group(title='regression tcn specific args options')
-        regressiontcn.add_argument("--learning_rate", default=0.002, type=float)
+        regressiontcn.add_argument("--learning_rate", default=0.001, type=float)
         regressiontcn.add_argument("--optimizer_name", default="adam", type=str)
-        regressiontcn.add_argument("--batch_size", default=8, type=int)
+        regressiontcn.add_argument("--batch_size", default=4, type=int)
         return parser

@@ -14,5 +14,5 @@ mstcn_causal_conv: True
 devices: 1
 batch_size: 4
 num_workers: 8
-learning_rate: 0.002
+learning_rate: 0.001
 optimizer_name: adam
