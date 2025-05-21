@@ -27,8 +27,10 @@ def load_config():
     return args
 
 def main():
-    wandb.login(key="3cd0fd46806f5dbb7e666990676fb3d1c75e0447")
     args = load_config()
+    if hasattr(args, "wandb_api_key") and args.wandb_api_key:
+        os.environ["WANDB_API_KEY"] = args.wandb_api_key
+        wandb.login() 
 
         # Define label map for surgical phases
     label_map = {
@@ -94,8 +96,9 @@ def main():
     os.makedirs(args.checkpoint_dir, exist_ok=True)
 
         # Set up logger and checkpoint callback
-    logger = TensorBoardLogger(save_dir=args.log_dir, name="mstcn")
-    wandb_logger = WandbLogger(project="VMAE-MSTCN_Final_training", log_model="all", config=hparams_dict)
+    logger = [TensorBoardLogger(save_dir=args.log_dir, name="mstcn"),
+          WandbLogger(project="VMAE-MSTCN_Final_training", log_model="all", config=hparams_dict)]
+
 
     checkpoint_callback = ModelCheckpoint(
         dirpath=args.checkpoint_dir,
