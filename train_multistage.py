@@ -3,12 +3,13 @@ import os
 import torch
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 from models.mstcn_wrapper import TeCNO, MSTCNDataset
 from models.mstcn import MultiStageModel
 from torch import nn
 import numpy as np
 import yaml
+import wandb
 
 def load_config():
     parser = argparse.ArgumentParser(description="Train MSTCN model")
@@ -26,6 +27,7 @@ def load_config():
     return args
 
 def main():
+    wandb.login(key="3cd0fd46806f5dbb7e666990676fb3d1c75e0447")
     args = load_config()
 
         # Define label map for surgical phases
@@ -93,12 +95,15 @@ def main():
 
         # Set up logger and checkpoint callback
     logger = TensorBoardLogger(save_dir=args.log_dir, name="mstcn")
+    wandb_logger = WandbLogger(project="VMAE-MSTCN_Final_training", log_model="all", config=hparams_dict)
+
     checkpoint_callback = ModelCheckpoint(
         dirpath=args.checkpoint_dir,
         monitor="val_acc",
         mode="max",
         save_top_k=1,
-        verbose=True
+        verbose=True,
+        every_n_epochs=10
     )
 
         # Handle devices for backward compatibility
@@ -116,6 +121,7 @@ def main():
 
         # Train the model
     trainer.fit(tecno)
+    wandb.finish()
 
 if __name__ == "__main__":
     main()

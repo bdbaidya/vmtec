@@ -3,12 +3,11 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from pytorch_lightning import LightningModule
-from torchmetrics.classification import Precision, Recall
+from torchmetrics.classification import Precision, Recall, F1Score
 from utils.metric_helper import AccuracyStages
 from torch import nn
 import numpy as np
 import logging
-
 
 
 class MSTCNDataset(Dataset):
@@ -86,8 +85,38 @@ class TeCNO(LightningModule):
         self.max_acc_last_stage = {"epoch": 0, "acc": 0}
         self.max_acc_global = {"epoch": 0, "acc": 0, "stage": 0, "last_stage_max_acc_is_global": False}
 
-        self.precision_metric = Precision(num_classes=7, average='none', task='multiclass')
-        self.recall_metric = Recall(num_classes=7, average='none', task='multiclass')
+        # Initialize metrics for all splits
+        self.train_precision = Precision(num_classes=7, average='none', task='multiclass')
+        self.train_recall = Recall(num_classes=7, average='none', task='multiclass')
+        self.train_f1 = F1Score(num_classes=7, average='none', task='multiclass')
+
+        self.val_precision = Precision(num_classes=7, average='none', task='multiclass')
+        self.val_recall = Recall(num_classes=7, average='none', task='multiclass')
+        self.val_f1 = F1Score(num_classes=7, average='none', task='multiclass')
+
+        self.test_precision = Precision(num_classes=7, average='none', task='multiclass')
+        self.test_recall = Recall(num_classes=7, average='none', task='multiclass')
+        self.test_f1 = F1Score(num_classes=7, average='none', task='multiclass')
+
+    def custom_dice_score(self, y_pred, y_true, num_classes=7, epsilon=1e-6):
+        """
+        Compute per-class Dice score for classification.
+        Args:
+            y_pred: Tensor of shape [batch * seq_len], predicted class indices
+            y_true: Tensor of shape [batch * seq_len], true class indices
+            num_classes: Number of classes (7 for surgical phases)
+            epsilon: Small value to avoid division by zero
+        Returns:
+            dice_scores: Tensor of shape [num_classes], Dice score per class
+        """
+        dice_scores = torch.zeros(num_classes, device=y_pred.device)
+        for c in range(num_classes):
+            pred_c = (y_pred == c).float()
+            true_c = (y_true == c).float()
+            intersection = (pred_c * true_c).sum()
+            union = pred_c.sum() + true_c.sum()
+            dice_scores[c] = (2 * intersection + epsilon) / (union + epsilon)
+        return dice_scores
 
     def forward(self, x):
         # Input x: [batch_size, 768, seq_len], e.g., [batch_size, 768, 16]
@@ -101,8 +130,6 @@ class TeCNO(LightningModule):
         for j in range(stages):
             p_classes = y_classes[j]  # [batch_size, num_classes, seq_len]
             ce_loss = self.ce_loss(p_classes, labels)  # labels: [batch_size, seq_len]
-            #p_classes = y_classes[j].squeeze().transpose(1, 0)  # [batch_size, num_classes, seq_len]
-            #ce_loss = self.ce_loss(p_classes, labels.squeeze())  # labels: [batch_size, seq_len]
             clc_loss += ce_loss
         clc_loss = clc_loss / (stages * 1.0)
         return clc_loss
@@ -124,45 +151,76 @@ class TeCNO(LightningModule):
 
     def calc_precision_and_recall(self, y_pred, y_true, step="val"):
         y_max_pred, y_true = format_classification_input(y_pred[-1], y_true, threshold=0.5)
-        precision = self.precision_metric(y_max_pred, y_true)
-        recall = self.recall_metric(y_max_pred, y_true)
-        return precision, recall
+        if step == "train":
+            precision = self.train_precision(y_max_pred, y_true)
+            recall = self.train_recall(y_max_pred, y_true)
+            f1 = self.train_f1(y_max_pred, y_true)
+            dice = self.custom_dice_score(y_max_pred, y_true)
+        elif step == "val":
+            precision = self.val_precision(y_max_pred, y_true)
+            recall = self.val_recall(y_max_pred, y_true)
+            f1 = self.val_f1(y_max_pred, y_true)
+            dice = self.custom_dice_score(y_max_pred, y_true)
+        else:  # test
+            precision = self.test_precision(y_max_pred, y_true)
+            recall = self.test_recall(y_max_pred, y_true)
+            f1 = self.test_f1(y_max_pred, y_true)
+            dice = self.custom_dice_score(y_max_pred, y_true)
+        return precision, recall, f1, dice
 
-    def log_precision_and_recall(self, precision, recall, step):
+    def log_precision_and_recall(self, precision, recall, f1, dice, step):
         for n, p in enumerate(precision):
             if not p.isnan():
                 self.log(f"{step}_precision_{self.dataset['train'].class_labels[n]}", p, on_step=True, on_epoch=True)
-        for n, p in enumerate(recall):
-            if not p.isnan():
-                self.log(f"{step}_recall_{self.dataset['train'].class_labels[n]}", p, on_step=True, on_epoch=True)
+        for n, r in enumerate(recall):
+            if not r.isnan():
+                self.log(f"{step}_recall_{self.dataset['train'].class_labels[n]}", r, on_step=True, on_epoch=True)
+        for n, f in enumerate(f1):
+            if not f.isnan():
+                self.log(f"{step}_f1_{self.dataset['train'].class_labels[n]}", f, on_step=True, on_epoch=True)
+        for n, d in enumerate(dice):
+            if not d.isnan():
+                self.log(f"{step}_dice_{self.dataset['train'].class_labels[n]}", d, on_step=True, on_epoch=True)
 
     def log_average_precision_recall(self, outputs, step="val"):
         precision_list = [o["precision"] for o in outputs]
         recall_list = [o["recall"] for o in outputs]
+        f1_list = [o["f1"] for o in outputs]
+        dice_list = [o["dice"] for o in outputs]
         x = torch.stack(precision_list)
         y = torch.stack(recall_list)
+        f = torch.stack(f1_list)
+        d = torch.stack(dice_list)
         phase_avg_precision = [torch.mean(x[~x[:, n].isnan(), n]) for n in range(x.shape[1])]
         phase_avg_recall = [torch.mean(y[~y[:, n].isnan(), n]) for n in range(y.shape[1])]
+        phase_avg_f1 = [torch.mean(f[~f[:, n].isnan(), n]) for n in range(f.shape[1])]
+        phase_avg_dice = [torch.mean(d[~d[:, n].isnan(), n]) for n in range(d.shape[1])]
         phase_avg_precision = torch.stack(phase_avg_precision)
         phase_avg_recall = torch.stack(phase_avg_recall)
+        phase_avg_f1 = torch.stack(phase_avg_f1)
+        phase_avg_dice = torch.stack(phase_avg_dice)
         phase_avg_precision_over_video = phase_avg_precision[~phase_avg_precision.isnan()].mean()
         phase_avg_recall_over_video = phase_avg_recall[~phase_avg_recall.isnan()].mean()
+        phase_avg_f1_over_video = phase_avg_f1[~phase_avg_f1.isnan()].mean()
+        phase_avg_dice_over_video = phase_avg_dice[~phase_avg_dice.isnan()].mean()
         self.log(f"{step}_avg_precision", phase_avg_precision_over_video, on_epoch=True, on_step=False)
         self.log(f"{step}_avg_recall", phase_avg_recall_over_video, on_epoch=True, on_step=False)
+        self.log(f"{step}_avg_f1", phase_avg_f1_over_video, on_epoch=True, on_step=False)
+        self.log(f"{step}_avg_dice", phase_avg_dice_over_video, on_epoch=True, on_step=False)
 
     def training_step(self, batch, batch_idx):
         stem, y_true = batch  # stem: [batch_size, 768, 16], y_true: [batch_size, 16]
         y_pred = self.forward(stem)
         loss = self.loss_function(y_pred, y_true)
         self.log("loss", loss, on_epoch=True, on_step=True, prog_bar=True)
-        precision, recall = self.calc_precision_and_recall(y_pred, y_true, step="train")
-        self.log_precision_and_recall(precision, recall, step="train")
+        precision, recall, f1, dice = self.calc_precision_and_recall(y_pred, y_true, step="train")
+        self.log_precision_and_recall(precision, recall, f1, dice, step="train")
         acc_stages = self.train_acc_stages(y_pred, y_true)
         acc_stages_dict = {f"train_S{s+1}_acc": acc_stages[s] for s in range(len(acc_stages))}
         acc_stages_dict["train_acc"] = acc_stages_dict.pop(f"train_S{len(acc_stages)}_acc")
         self.log_dict(acc_stages_dict, on_epoch=True, on_step=False)
-        self.train_step_outputs.append({"loss": loss, "precision": precision, "recall": recall})
-        return {"loss": loss, "precision": precision, "recall": recall}
+        self.train_step_outputs.append({"loss": loss, "precision": precision, "recall": recall, "f1": f1, "dice": dice})
+        return {"loss": loss, "precision": precision, "recall": recall, "f1": f1, "dice": dice}
 
     def on_train_epoch_end(self):
         self.log_average_precision_recall(self.train_step_outputs, step="train")
@@ -173,8 +231,8 @@ class TeCNO(LightningModule):
         y_pred = self.forward(stem)
         val_loss = self.loss_function(y_pred, y_true)
         self.log("val_loss", val_loss, on_epoch=True, prog_bar=True, on_step=False)
-        precision, recall = self.calc_precision_and_recall(y_pred, y_true, step="val")
-        self.log_precision_and_recall(precision, recall, step="val")
+        precision, recall, f1, dice = self.calc_precision_and_recall(y_pred, y_true, step="val")
+        self.log_precision_and_recall(precision, recall, f1, dice, step="val")
         self.val_acc_stages(y_pred, y_true)
         acc_stages = self.val_acc_stages.compute()
         metric_dict = {f"val_S{s + 1}_acc": acc_stages[s] for s in range(len(acc_stages))}
@@ -182,6 +240,8 @@ class TeCNO(LightningModule):
         self.log_dict(metric_dict, on_epoch=True, on_step=False)
         metric_dict["precision"] = precision
         metric_dict["recall"] = recall
+        metric_dict["f1"] = f1
+        metric_dict["dice"] = dice
         self.val_step_outputs.append(metric_dict)
         return metric_dict
 
@@ -199,8 +259,8 @@ class TeCNO(LightningModule):
         y_pred = self.forward(stem)
         test_loss = self.loss_function(y_pred, y_true)
         self.log("test_loss", test_loss, on_epoch=True, prog_bar=True, on_step=False)
-        precision, recall = self.calc_precision_and_recall(y_pred, y_true, step="test")
-        self.log_precision_and_recall(precision, recall, step="test")
+        precision, recall, f1, dice = self.calc_precision_and_recall(y_pred, y_true, step="test")
+        self.log_precision_and_recall(precision, recall, f1, dice, step="test")
         self.val_acc_stages(y_pred, y_true)
         acc_stages = self.val_acc_stages.compute()
         metric_dict = {f"test_S{s + 1}_acc": acc_stages[s] for s in range(len(acc_stages))}
@@ -208,6 +268,8 @@ class TeCNO(LightningModule):
         self.log_dict(metric_dict, on_epoch=True, on_step=False)
         metric_dict["precision"] = precision
         metric_dict["recall"] = recall
+        metric_dict["f1"] = f1
+        metric_dict["dice"] = dice
         self.test_step_outputs.append(metric_dict)
         return metric_dict
 
