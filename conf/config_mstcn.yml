@@ -3,8 +3,9 @@ val_dir: /mnt/ceph/tco/TCO-Students/Homes/debashis/data/processed/mstcn-features
 test_dir: /mnt/ceph/tco/TCO-Students/Homes/debashis/data/processed/mstcn-features/test
 wandb_api_key: "3cd0fd46806f5dbb7e666990676fb3d1c75e0447"
 log_dir: logs
-checkpoint_dir: checkpoints/mstcn
-max_epochs: 300
+checkpoint_dir: checkpoints/mstcn/updated
+max_epochs: 30
+seed: 42
 mstcn_stages: 2
 mstcn_layers: 10
 mstcn_f_maps: 64
@@ -12,7 +13,7 @@ mstcn_f_dim: 768
 out_features: 7
 mstcn_causal_conv: True
 devices: 1
-batch_size: 4
+batch_size: 1
 num_workers: 8
-learning_rate: 0.002
+learning_rate: 0.00007
 optimizer_name: adam
