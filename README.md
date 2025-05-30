@@ -1,40 +1,33 @@
-# 🧠 Surgical Phase Recognition with VideoMAE + MS-TCN
+# 🧠 Surgical Phase Recognition with VideoMAE
 
-This project performs **surgical phase recognition** on the **Cholec80** dataset using a two-stage pipeline:
-1. **Pretrained VideoMAE** for extracting clip-level features.
-2. **MS-TCN** for temporal modeling and frame-wise phase prediction.
+This repository extends the official [VideoMAE repository](https://github.com/MCG-NJU/VideoMAE) for the project: **Towards Temporal Foundation Models for Surgical Phase Recognition in Minimally Invasive Cholecystectomy**.
+
+This project focuses on **surgical phase recognition** using the **Cholec80** dataset with VideoMAE, leveraging a sliding window training approach.
 
 ---
 
-## 📦 Installation
+## 📚 Resources
 
-### 1. Clone the repository
-```bash
-- git clone https://github.com/your-username/surgical-phase-recognition.git
-- cd surgical-phase-recognition
-```
+- **Inference Notebook**: [VideoMAE Segmentation on Kaggle](https://www.kaggle.com/code/debashisbaidya/videomae-segmentation)
+- **Sample Fine-Tuning Setup Notebook**: [Google Colab Notebook](https://colab.research.google.com/drive/1mkltcZKbz4Pf8xLRrB-Oy_BcdxPrf2uT?usp=sharing)
+- **Full VideoMAE Cholec80 Fine-Tuning Dataset**: [Google Drive Folder](https://drive.google.com/drive/folders/1ErvZnTF-5Kn9khLFeKo9weoJgNxnFRxx?usp=sharing)
+
+---
+
+## 📦 Directory Structure
+
 ```bash
 .
-├── extract_features.py      # Uses VideoMAE to extract clip features
-├── train_mstcn.py           # Trains MS-TCN using features
-├── predict.py               # Runs full inference and predicts phases
-├── model/
-│   ├── videomae/            # Pretrained VideoMAE model
-│   └── mstcn.py             # MS-TCN model definition
-├── data/
-│   └── cholec80/            # Cholec80 dataset location
-│       └── videos/
-├── features/                # Saved .pkl feature files
-├── checkpoints/             # Trained MS-TCN models
-└── requirements.txt
+├── videomae/                # VideoMAE pre-training and fine-tuning code
+├── video_extractor/         # For data preparation
+
 ```
 
-### Project setup : ``` pip install -r requirements.txt ```
+### For VideoMAE Training : ``` videomae/ ```
 
-### Step 1: Pretrain VideoMAE : ```python pretraining.py```
-### Step 2: Extract Features : ```python feature_extraction.py```
-### Step 3: Train MSTCN : ```python train_mstcn.py```
-
-### Inferencing : ```Use the codes in ./inferencing```
+### 1. Video Preparation ```video_extractor.py```
+### 2. Pre-train VideoMAE ``` run_mae_pretraining_with_chart.py```
+### 3. Fine-tune VideoMAE ```run_class_finetuning_with_chart.py```
+### Inferencing : ```run_segmentation_inference.py```
 
 Author : Debashis Baidya, TU dresden, Dresden, Germany

@@ -27,7 +27,7 @@ class DropPath(nn.Module):
 
     def forward(self, x):
         return drop_path(x, self.drop_prob, self.training)
-
+    
     def extra_repr(self) -> str:
         return 'p={}'.format(self.drop_prob)
 
@@ -46,7 +46,7 @@ class Mlp(nn.Module):
         x = self.fc1(x)
         x = self.act(x)
         # x = self.drop(x)
-        # commit this for the orignal BERT implement
+        # commit this for the orignal BERT implement 
         x = self.fc2(x)
         x = self.drop(x)
         return x
@@ -89,7 +89,7 @@ class Attention(nn.Module):
         q = q * self.scale
         attn = (q @ k.transpose(-2, -1))
 
-
+        
         attn = attn.softmax(dim=-1)
         attn = self.attn_drop(attn)
 
@@ -143,8 +143,8 @@ class PatchEmbed(nn.Module):
         self.img_size = img_size
         self.patch_size = patch_size
         self.num_patches = num_patches
-        self.proj = nn.Conv3d(in_channels=in_chans, out_channels=embed_dim,
-                            kernel_size = (self.tubelet_size,  patch_size[0],patch_size[1]),
+        self.proj = nn.Conv3d(in_channels=in_chans, out_channels=embed_dim, 
+                            kernel_size = (self.tubelet_size,  patch_size[0],patch_size[1]), 
                             stride=(self.tubelet_size,  patch_size[0],  patch_size[1]))
 
     def forward(self, x, **kwargs):
@@ -154,43 +154,43 @@ class PatchEmbed(nn.Module):
             f"Input image size ({H}*{W}) doesn't match model ({self.img_size[0]}*{self.img_size[1]})."
         x = self.proj(x).flatten(2).transpose(1, 2)
         return x
-
+    
 # sin-cos position encoding
 # https://github.com/jadore801120/attention-is-all-you-need-pytorch/blob/master/transformer/Models.py#L31
-def get_sinusoid_encoding_table(n_position, d_hid):
-    ''' Sinusoid position encoding table '''
-    # TODO: make it with torch instead of numpy
-    def get_position_angle_vec(position):
-        return [position / np.power(10000, 2 * (hid_j // 2) / d_hid) for hid_j in range(d_hid)]
+def get_sinusoid_encoding_table(n_position, d_hid): 
+    ''' Sinusoid position encoding table ''' 
+    # TODO: make it with torch instead of numpy 
+    def get_position_angle_vec(position): 
+        return [position / np.power(10000, 2 * (hid_j // 2) / d_hid) for hid_j in range(d_hid)] 
 
-    sinusoid_table = np.array([get_position_angle_vec(pos_i) for pos_i in range(n_position)])
-    sinusoid_table[:, 0::2] = np.sin(sinusoid_table[:, 0::2]) # dim 2i
-    sinusoid_table[:, 1::2] = np.cos(sinusoid_table[:, 1::2]) # dim 2i+1
+    sinusoid_table = np.array([get_position_angle_vec(pos_i) for pos_i in range(n_position)]) 
+    sinusoid_table[:, 0::2] = np.sin(sinusoid_table[:, 0::2]) # dim 2i 
+    sinusoid_table[:, 1::2] = np.cos(sinusoid_table[:, 1::2]) # dim 2i+1 
 
-    return  torch.tensor(sinusoid_table,dtype=torch.float, requires_grad=False).unsqueeze(0)
+    return  torch.tensor(sinusoid_table,dtype=torch.float, requires_grad=False).unsqueeze(0) 
 
 
 class VisionTransformer(nn.Module):
     """ Vision Transformer with support for patch or hybrid CNN input stage
     """
-    def __init__(self,
-                 img_size=224,
-                 patch_size=16,
-                 in_chans=3,
-                 num_classes=1000,
-                 embed_dim=768,
+    def __init__(self, 
+                 img_size=224, 
+                 patch_size=16, 
+                 in_chans=3, 
+                 num_classes=1000, 
+                 embed_dim=768, 
                  depth=12,
-                 num_heads=12,
-                 mlp_ratio=4.,
-                 qkv_bias=False,
-                 qk_scale=None,
-                 fc_drop_rate=0.,
-                 drop_rate=0.,
+                 num_heads=12, 
+                 mlp_ratio=4., 
+                 qkv_bias=False, 
+                 qk_scale=None, 
+                 fc_drop_rate=0., 
+                 drop_rate=0., 
                  attn_drop_rate=0.,
-                 drop_path_rate=0.,
-                 norm_layer=nn.LayerNorm,
+                 drop_path_rate=0., 
+                 norm_layer=nn.LayerNorm, 
                  init_values=0.,
-                 use_learnable_pos_emb=False,
+                 use_learnable_pos_emb=False, 
                  init_scale=0.,
                  all_frames=16,
                  tubelet_size=2,
@@ -269,7 +269,7 @@ class VisionTransformer(nn.Module):
         if self.use_checkpoint:
             for blk in self.blocks:
                 x = checkpoint.checkpoint(blk, x)
-        else:
+        else:   
             for blk in self.blocks:
                 x = blk(x)
 
